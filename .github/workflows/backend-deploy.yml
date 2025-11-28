@@ -1,0 +1,33 @@
+# Optional: Deploy backend to a free service
+# This is a template - you'll need to configure it based on your hosting service
+# Options: Render, Railway, Heroku, Vercel, etc.
+
+name: Deploy Backend (Optional)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'server/**'
+      - 'package.json'
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      # Add your deployment steps here based on your hosting service
+      # Example for Render:
+      # - name: Deploy to Render
+      #   run: |
+      #     curl -X POST https://api.render.com/deploy/srv-xxx?key=${{ secrets.RENDER_API_KEY }}
+
