@@ -332,6 +332,24 @@ setInterval(async () => {
 
 // Routes
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'SSB Prep Portal API Server',
+    endpoints: {
+      health: '/api/health',
+      news: '/api/news',
+      upload: '/api/upload',
+      tatImages: '/api/tat-images',
+      watWords: '/api/wat-words',
+      srtList: '/api/srt-list',
+      readingMaterial: '/api/reading-material',
+      newspapers: '/api/newspapers'
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
