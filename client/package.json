@@ -1,7 +1,7 @@
 {
   "name": "ssb-prep-portal-client",
   "version": "1.0.0",
-  "homepage": ".",
+  "homepage": "https://sukhsidhu3287.github.io/ssb_prep_portal",
   "private": true,
   "dependencies": {
     "axios": "^1.6.0",

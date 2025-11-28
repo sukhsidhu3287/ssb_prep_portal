@@ -567,7 +567,7 @@ function extractDateFromFilename(filename) {
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));
 
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Server running on port ${PORT}`);
   // News will be fetched automatically on server start via initializeNews()
 });

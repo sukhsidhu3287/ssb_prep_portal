@@ -36,6 +36,11 @@ jobs:
         env:
           REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL || 'https://ssb-prep-portal.onrender.com' }}
       
+      - name: Verify build output
+        run: |
+          ls -la client/build
+          ls -la client/build/static
+      
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
