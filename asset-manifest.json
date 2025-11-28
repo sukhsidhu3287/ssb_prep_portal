@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/ssb_prep_portal/static/css/main.8c311a81.css",
-    "main.js": "/ssb_prep_portal/static/js/main.6b620c96.js",
+    "main.js": "/ssb_prep_portal/static/js/main.b05b3e4b.js",
     "index.html": "/ssb_prep_portal/index.html",
     "main.8c311a81.css.map": "/ssb_prep_portal/static/css/main.8c311a81.css.map",
-    "main.6b620c96.js.map": "/ssb_prep_portal/static/js/main.6b620c96.js.map"
+    "main.b05b3e4b.js.map": "/ssb_prep_portal/static/js/main.b05b3e4b.js.map"
   },
   "entrypoints": [
     "static/css/main.8c311a81.css",
-    "static/js/main.6b620c96.js"
+    "static/js/main.b05b3e4b.js"
   ]
 }
