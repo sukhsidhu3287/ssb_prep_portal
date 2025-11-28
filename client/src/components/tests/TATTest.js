@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../config/api';
+import api, { API_BASE_URL } from '../../config/api';
 import './TATTest.css';
 
 function TATTest({ onBack }) {
@@ -127,7 +127,7 @@ function TATTest({ onBack }) {
               Viewing: {formatTime(viewTimer)}
             </div>
             <img 
-              src={`${process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000')}${currentImage.path}`} 
+              src={`${API_BASE_URL}${currentImage.path}`} 
               alt={`TAT ${currentIndex + 1}`}
               className="tat-image"
             />

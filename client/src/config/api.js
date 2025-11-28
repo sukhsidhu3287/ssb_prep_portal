@@ -4,7 +4,7 @@ import axios from 'axios';
 const getApiBaseUrl = () => {
   // In production (GitHub Pages), use environment variable or default backend URL
   if (process.env.NODE_ENV === 'production') {
-    return process.env.REACT_APP_API_URL || 'https://your-backend-url.herokuapp.com';
+    return process.env.REACT_APP_API_URL || 'https://ssb-prep-portal.onrender.com';
   }
   // In development, use proxy or localhost
   return process.env.REACT_APP_API_URL || '';

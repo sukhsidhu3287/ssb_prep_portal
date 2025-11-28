@@ -305,6 +305,11 @@ setInterval(async () => {
 
 // Routes
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
 // Get news headlines
 app.get('/api/news', async (req, res) => {
   try {

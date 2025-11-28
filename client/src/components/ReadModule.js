@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../config/api';
+import api, { API_BASE_URL } from '../config/api';
 import './ReadModule.css';
 
 function ReadModule() {
@@ -33,8 +33,7 @@ function ReadModule() {
   };
 
   const openFile = (filePath) => {
-    const baseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
-    window.open(`${baseUrl}${filePath}`, '_blank');
+    window.open(`${API_BASE_URL}${filePath}`, '_blank');
   };
 
   return (
