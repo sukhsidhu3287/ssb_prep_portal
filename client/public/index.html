@@ -23,7 +23,17 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
+        <h1>Loading SSB Prep Portal...</h1>
+        <p>If you see this message for more than a few seconds, please check the browser console for errors.</p>
+      </div>
+    </div>
+    <script>
+      // Log that HTML loaded
+      console.log('HTML loaded at:', new Date().toISOString());
+      console.log('Current URL:', window.location.href);
+    </script>
   </body>
 </html>
 

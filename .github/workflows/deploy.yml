@@ -38,8 +38,16 @@ jobs:
       
       - name: Verify build output
         run: |
+          echo "Checking build files..."
           ls -la client/build
-          ls -la client/build/static
+          echo "Checking static files..."
+          ls -la client/build/static || echo "No static directory found"
+          echo "Checking for index.html..."
+          test -f client/build/index.html && echo "✓ index.html exists" || echo "✗ index.html missing"
+          echo "Checking for CNAME..."
+          test -f client/build/CNAME && echo "✓ CNAME exists" || echo "✗ CNAME missing"
+          echo "Checking for 404.html..."
+          test -f client/build/404.html && echo "✓ 404.html exists" || echo "✗ 404.html missing"
       
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
