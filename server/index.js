@@ -25,6 +25,8 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5000',
+  'https://sukhsidhu3287.github.io',
+  'https://sukhsidhu3287.github.io/ssb_prep_portal',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -33,17 +35,39 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
-    // Check if origin is in allowed list
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('.github.io')) {
+    // Check if origin is in allowed list or is a GitHub Pages domain
+    if (allowedOrigins.indexOf(origin) !== -1 || 
+        origin.includes('.github.io') || 
+        origin.startsWith('https://') && origin.includes('github.io')) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all for now - restrict in production
+      // Allow all for development - you can restrict this in production
+      callback(null, true);
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type']
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+// Handle preflight requests explicitly (before routes)
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (allowedOrigins.includes(origin) || origin.includes('.github.io'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  res.sendStatus(200);
+});
 
 // Ensure directories exist
 const directories = [
