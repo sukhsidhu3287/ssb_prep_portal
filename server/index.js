@@ -423,12 +423,30 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         finalFilename = req.file.originalname;
       }
     } else if (uploadType === 'tat') {
-      targetDir += 'tat_images';
+      // Organize TAT images into test folders (12 images per test)
+      const tatBaseDir = 'uploads/tat_images';
+      fs.ensureDirSync(tatBaseDir);
       
-      // Auto-number TAT images
-      const tatDir = 'uploads/tat_images';
-      fs.ensureDirSync(tatDir);
-      const files = fs.readdirSync(tatDir).filter(f => 
+      // Find the appropriate test folder
+      let testNum = 1;
+      let testDir = path.join(tatBaseDir, `test_${testNum}`);
+      
+      while (fs.existsSync(testDir)) {
+        const filesInTest = fs.readdirSync(testDir).filter(f => 
+          /\.(png|jpg|jpeg)$/i.test(f)
+        );
+        if (filesInTest.length >= 12) {
+          testNum++;
+          testDir = path.join(tatBaseDir, `test_${testNum}`);
+        } else {
+          break;
+        }
+      }
+      
+      fs.ensureDirSync(testDir);
+      
+      // Auto-number TAT images within the test folder
+      const files = fs.readdirSync(testDir).filter(f => 
         /\.(png|jpg|jpeg)$/i.test(f) && f.startsWith('TAT_')
       );
       
@@ -442,12 +460,41 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       
       const ext = path.extname(req.file.originalname);
       finalFilename = `TAT_${maxNum + 1}${ext}`;
+      targetDir = testDir;
     } else if (uploadType === 'wat') {
-      targetDir += 'wat_words';
+      // Organize WAT files into test folders
+      const watBaseDir = 'uploads/wat_words';
+      fs.ensureDirSync(watBaseDir);
+      
+      // Find the next available test number
+      let testNum = 1;
+      let testDir = path.join(watBaseDir, `test_${testNum}`);
+      
+      while (fs.existsSync(testDir) && fs.existsSync(path.join(testDir, 'words.txt'))) {
+        testNum++;
+        testDir = path.join(watBaseDir, `test_${testNum}`);
+      }
+      
+      fs.ensureDirSync(testDir);
       finalFilename = 'words.txt';
+      targetDir = testDir;
     } else if (uploadType === 'srt') {
-      targetDir += 'srt_list';
+      // Organize SRT files into test folders
+      const srtBaseDir = 'uploads/srt_list';
+      fs.ensureDirSync(srtBaseDir);
+      
+      // Find the next available test number
+      let testNum = 1;
+      let testDir = path.join(srtBaseDir, `test_${testNum}`);
+      
+      while (fs.existsSync(testDir) && fs.existsSync(path.join(testDir, 'srt_list.txt'))) {
+        testNum++;
+        testDir = path.join(srtBaseDir, `test_${testNum}`);
+      }
+      
+      fs.ensureDirSync(testDir);
       finalFilename = 'srt_list.txt';
+      targetDir = testDir;
     } else {
       targetDir = 'uploads/';
     }
@@ -493,8 +540,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         srtItems.push(currentItem);
       }
       
-      // Save as JSON
-      const jsonPath = path.join('uploads/srt_list', 'srt_list.json');
+      // Save as JSON in the same test folder
+      const jsonPath = path.join(targetDir, 'srt_list.json');
       fs.writeJsonSync(jsonPath, srtItems, { spaces: 2 });
     }
     
@@ -510,15 +557,53 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// Get TAT images
-app.get('/api/tat-images', (req, res) => {
+// Get available TAT tests
+app.get('/api/tat-tests', (req, res) => {
   try {
-    const tatDir = 'uploads/tat_images';
-    const files = fs.readdirSync(tatDir)
+    const tatBaseDir = 'uploads/tat_images';
+    if (!fs.existsSync(tatBaseDir)) {
+      return res.json([]);
+    }
+    
+    const items = fs.readdirSync(tatBaseDir, { withFileTypes: true });
+    const tests = items
+      .filter(item => item.isDirectory() && item.name.startsWith('test_'))
+      .map(item => {
+        const testNum = parseInt(item.name.replace('test_', ''));
+        const testDir = path.join(tatBaseDir, item.name);
+        const fileCount = fs.readdirSync(testDir).filter(f => 
+          /\.(png|jpg|jpeg)$/i.test(f)
+        ).length;
+        return {
+          testNumber: testNum,
+          testName: item.name,
+          imageCount: fileCount
+        };
+      })
+      .filter(test => test.imageCount > 0)
+      .sort((a, b) => a.testNumber - b.testNumber);
+    
+    res.json(tests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get TAT images for a specific test
+app.get('/api/tat-images/:testNumber', (req, res) => {
+  try {
+    const testNumber = req.params.testNumber;
+    const testDir = path.join('uploads/tat_images', `test_${testNumber}`);
+    
+    if (!fs.existsSync(testDir)) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+    
+    const files = fs.readdirSync(testDir)
       .filter(f => /\.(png|jpg|jpeg)$/i.test(f))
       .map(f => ({
         filename: f,
-        path: `/uploads/tat_images/${f}`
+        path: `/uploads/tat_images/test_${testNumber}/${f}`
       }))
       .sort((a, b) => {
         const numA = parseInt(a.filename.match(/\d+/)?.[0] || 0);
@@ -532,34 +617,230 @@ app.get('/api/tat-images', (req, res) => {
   }
 });
 
-// Get WAT words
-app.get('/api/wat-words', (req, res) => {
+// Get TAT images (backward compatibility - returns first test or empty)
+app.get('/api/tat-images', (req, res) => {
   try {
-    const wordsPath = 'uploads/wat_words/words.txt';
-    if (fs.existsSync(wordsPath)) {
-      const content = fs.readFileSync(wordsPath, 'utf-8');
-      const words = content.split('\n')
-        .map(w => w.trim())
-        .filter(w => w.length > 0);
-      res.json(words);
-    } else {
-      res.json([]);
+    const tatBaseDir = 'uploads/tat_images';
+    if (!fs.existsSync(tatBaseDir)) {
+      return res.json([]);
     }
+    
+    // Find first test folder with images
+    const items = fs.readdirSync(tatBaseDir, { withFileTypes: true });
+    const testDirs = items
+      .filter(item => item.isDirectory() && item.name.startsWith('test_'))
+      .map(item => ({
+        name: item.name,
+        number: parseInt(item.name.replace('test_', ''))
+      }))
+      .sort((a, b) => a.number - b.number);
+    
+    if (testDirs.length === 0) {
+      return res.json([]);
+    }
+    
+    const firstTestDir = path.join(tatBaseDir, testDirs[0].name);
+    const files = fs.readdirSync(firstTestDir)
+      .filter(f => /\.(png|jpg|jpeg)$/i.test(f))
+      .map(f => ({
+        filename: f,
+        path: `/uploads/tat_images/${testDirs[0].name}/${f}`
+      }))
+      .sort((a, b) => {
+        const numA = parseInt(a.filename.match(/\d+/)?.[0] || 0);
+        const numB = parseInt(b.filename.match(/\d+/)?.[0] || 0);
+        return numA - numB;
+      });
+    
+    res.json(files);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get SRT list
+// Get available WAT tests
+app.get('/api/wat-tests', (req, res) => {
+  try {
+    const watBaseDir = 'uploads/wat_words';
+    if (!fs.existsSync(watBaseDir)) {
+      return res.json([]);
+    }
+    
+    const items = fs.readdirSync(watBaseDir, { withFileTypes: true });
+    const tests = items
+      .filter(item => item.isDirectory() && item.name.startsWith('test_'))
+      .map(item => {
+        const testNum = parseInt(item.name.replace('test_', ''));
+        const wordsPath = path.join(watBaseDir, item.name, 'words.txt');
+        let wordCount = 0;
+        if (fs.existsSync(wordsPath)) {
+          const content = fs.readFileSync(wordsPath, 'utf-8');
+          wordCount = content.split('\n').filter(w => w.trim().length > 0).length;
+        }
+        return {
+          testNumber: testNum,
+          testName: item.name,
+          wordCount: wordCount
+        };
+      })
+      .filter(test => test.wordCount > 0)
+      .sort((a, b) => a.testNumber - b.testNumber);
+    
+    res.json(tests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get WAT words for a specific test
+app.get('/api/wat-words/:testNumber', (req, res) => {
+  try {
+    const testNumber = req.params.testNumber;
+    const wordsPath = path.join('uploads/wat_words', `test_${testNumber}`, 'words.txt');
+    
+    if (!fs.existsSync(wordsPath)) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+    
+    const content = fs.readFileSync(wordsPath, 'utf-8');
+    let words = content.split('\n')
+      .map(w => w.trim())
+      .filter(w => w.length > 0);
+    
+    // Limit to 60 words as per requirements
+    if (words.length > 60) {
+      words = words.slice(0, 60);
+    }
+    
+    res.json(words);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get WAT words (backward compatibility - returns first test or empty)
+app.get('/api/wat-words', (req, res) => {
+  try {
+    const watBaseDir = 'uploads/wat_words';
+    if (!fs.existsSync(watBaseDir)) {
+      return res.json([]);
+    }
+    
+    // Find first test folder with words.txt
+    const items = fs.readdirSync(watBaseDir, { withFileTypes: true });
+    const testDirs = items
+      .filter(item => item.isDirectory() && item.name.startsWith('test_'))
+      .map(item => ({
+        name: item.name,
+        number: parseInt(item.name.replace('test_', ''))
+      }))
+      .sort((a, b) => a.number - b.number);
+    
+    for (const testDir of testDirs) {
+      const wordsPath = path.join(watBaseDir, testDir.name, 'words.txt');
+      if (fs.existsSync(wordsPath)) {
+        const content = fs.readFileSync(wordsPath, 'utf-8');
+        let words = content.split('\n')
+          .map(w => w.trim())
+          .filter(w => w.length > 0);
+        
+        // Limit to 60 words as per requirements
+        if (words.length > 60) {
+          words = words.slice(0, 60);
+        }
+        
+        return res.json(words);
+      }
+    }
+    
+    res.json([]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get available SRT tests
+app.get('/api/srt-tests', (req, res) => {
+  try {
+    const srtBaseDir = 'uploads/srt_list';
+    if (!fs.existsSync(srtBaseDir)) {
+      return res.json([]);
+    }
+    
+    const items = fs.readdirSync(srtBaseDir, { withFileTypes: true });
+    const tests = items
+      .filter(item => item.isDirectory() && item.name.startsWith('test_'))
+      .map(item => {
+        const testNum = parseInt(item.name.replace('test_', ''));
+        const jsonPath = path.join(srtBaseDir, item.name, 'srt_list.json');
+        let itemCount = 0;
+        if (fs.existsSync(jsonPath)) {
+          try {
+            const srtList = fs.readJsonSync(jsonPath);
+            itemCount = Array.isArray(srtList) ? srtList.length : 0;
+          } catch (e) {
+            itemCount = 0;
+          }
+        }
+        return {
+          testNumber: testNum,
+          testName: item.name,
+          itemCount: itemCount
+        };
+      })
+      .filter(test => test.itemCount > 0)
+      .sort((a, b) => a.testNumber - b.testNumber);
+    
+    res.json(tests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get SRT list for a specific test
+app.get('/api/srt-list/:testNumber', (req, res) => {
+  try {
+    const testNumber = req.params.testNumber;
+    const jsonPath = path.join('uploads/srt_list', `test_${testNumber}`, 'srt_list.json');
+    
+    if (!fs.existsSync(jsonPath)) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+    
+    const srtList = fs.readJsonSync(jsonPath);
+    res.json(Array.isArray(srtList) ? srtList : []);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get SRT list (backward compatibility - returns first test or empty)
 app.get('/api/srt-list', (req, res) => {
   try {
-    const jsonPath = 'uploads/srt_list/srt_list.json';
-    if (fs.existsSync(jsonPath)) {
-      const srtList = fs.readJsonSync(jsonPath);
-      res.json(srtList);
-    } else {
-      res.json([]);
+    const srtBaseDir = 'uploads/srt_list';
+    if (!fs.existsSync(srtBaseDir)) {
+      return res.json([]);
     }
+    
+    // Find first test folder with srt_list.json
+    const items = fs.readdirSync(srtBaseDir, { withFileTypes: true });
+    const testDirs = items
+      .filter(item => item.isDirectory() && item.name.startsWith('test_'))
+      .map(item => ({
+        name: item.name,
+        number: parseInt(item.name.replace('test_', ''))
+      }))
+      .sort((a, b) => a.number - b.number);
+    
+    for (const testDir of testDirs) {
+      const jsonPath = path.join(srtBaseDir, testDir.name, 'srt_list.json');
+      if (fs.existsSync(jsonPath)) {
+        const srtList = fs.readJsonSync(jsonPath);
+        return res.json(Array.isArray(srtList) ? srtList : []);
+      }
+    }
+    
+    res.json([]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

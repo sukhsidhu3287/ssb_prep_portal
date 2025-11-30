@@ -3,6 +3,8 @@ import api, { API_BASE_URL } from '../../config/api';
 import './TATTest.css';
 
 function TATTest({ onBack }) {
+  const [availableTests, setAvailableTests] = useState([]);
+  const [selectedTest, setSelectedTest] = useState(null);
   const [images, setImages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [phase, setPhase] = useState('viewing'); // 'viewing' or 'writing'
@@ -11,7 +13,7 @@ function TATTest({ onBack }) {
   const [testComplete, setTestComplete] = useState(false);
 
   useEffect(() => {
-    loadImages();
+    loadAvailableTests();
   }, []);
 
   useEffect(() => {
@@ -42,21 +44,32 @@ function TATTest({ onBack }) {
     }
   }, [phase, writeTimer, currentIndex, images.length]);
 
-  const loadImages = async () => {
+  const loadAvailableTests = async () => {
     try {
-      const response = await api.get('/api/tat-images');
-      let imageList = response.data;
-      
-      if (imageList.length >= 12) {
-        // Randomly pick 12
-        const shuffled = [...imageList].sort(() => 0.5 - Math.random());
-        imageList = shuffled.slice(0, 12);
-      }
-      
-      setImages(imageList);
+      const response = await api.get('/api/tat-tests');
+      setAvailableTests(response.data);
+    } catch (error) {
+      console.error('Error loading available tests:', error);
+    }
+  };
+
+  const loadImages = async (testNumber) => {
+    try {
+      const response = await api.get(`/api/tat-images/${testNumber}`);
+      setImages(response.data);
     } catch (error) {
       console.error('Error loading images:', error);
     }
+  };
+
+  const handleTestSelect = (testNumber) => {
+    setSelectedTest(testNumber);
+    setCurrentIndex(0);
+    setPhase('viewing');
+    setViewTimer(30);
+    setWriteTimer(240);
+    setTestComplete(false);
+    loadImages(testNumber);
   };
 
   const playAlertSound = () => {
@@ -88,6 +101,38 @@ function TATTest({ onBack }) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Show test selection screen
+  if (!selectedTest) {
+    return (
+      <div className="tat-test">
+        <button className="back-button" onClick={onBack}>← Back</button>
+        <div className="test-selection">
+          <h2>Select TAT Test</h2>
+          {availableTests.length === 0 ? (
+            <div className="no-images">
+              <p>No TAT tests available. Please upload images first.</p>
+            </div>
+          ) : (
+            <>
+              <p className="test-info">Available Tests: {availableTests.length}</p>
+              <div className="test-options">
+                {availableTests.map(test => (
+                  <button
+                    key={test.testNumber}
+                    className="test-option-btn"
+                    onClick={() => handleTestSelect(test.testNumber)}
+                  >
+                    Test {test.testNumber} ({test.imageCount} images)
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (testComplete) {
     return (
       <div className="tat-test">
@@ -105,7 +150,7 @@ function TATTest({ onBack }) {
       <div className="tat-test">
         <button className="back-button" onClick={onBack}>← Back</button>
         <div className="no-images">
-          <p>No TAT images found. Please upload images first.</p>
+          <p>No TAT images found in this test.</p>
         </div>
       </div>
     );

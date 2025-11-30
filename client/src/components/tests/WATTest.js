@@ -3,6 +3,8 @@ import api from '../../config/api';
 import './WATTest.css';
 
 function WATTest({ onBack }) {
+  const [availableTests, setAvailableTests] = useState([]);
+  const [selectedTest, setSelectedTest] = useState(null);
   const [words, setWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timer, setTimer] = useState(30);
@@ -10,7 +12,7 @@ function WATTest({ onBack }) {
   const [displayedWords, setDisplayedWords] = useState([]);
 
   useEffect(() => {
-    loadWords();
+    loadAvailableTests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -34,22 +36,34 @@ function WATTest({ onBack }) {
     }
   }, [timer, currentIndex, words, showSummary]);
 
-  const loadWords = async () => {
+  const loadAvailableTests = async () => {
     try {
-      const response = await api.get('/api/wat-words');
-      let wordList = response.data;
-      
-      if (wordList.length > 60) {
-        wordList = wordList.slice(0, 60);
-      }
-      
-      setWords(wordList);
-      if (wordList.length > 0) {
+      const response = await api.get('/api/wat-tests');
+      setAvailableTests(response.data);
+    } catch (error) {
+      console.error('Error loading available tests:', error);
+    }
+  };
+
+  const loadWords = async (testNumber) => {
+    try {
+      const response = await api.get(`/api/wat-words/${testNumber}`);
+      setWords(response.data);
+      if (response.data.length > 0) {
         playWordSound();
       }
     } catch (error) {
       console.error('Error loading words:', error);
     }
+  };
+
+  const handleTestSelect = (testNumber) => {
+    setSelectedTest(testNumber);
+    setCurrentIndex(0);
+    setTimer(30);
+    setShowSummary(false);
+    setDisplayedWords([]);
+    loadWords(testNumber);
   };
 
   const playWordSound = () => {
@@ -99,12 +113,44 @@ function WATTest({ onBack }) {
     }
   };
 
+  // Show test selection screen
+  if (!selectedTest) {
+    return (
+      <div className="wat-test">
+        <button className="back-button" onClick={onBack}>← Back</button>
+        <div className="test-selection">
+          <h2>Select WAT Test</h2>
+          {availableTests.length === 0 ? (
+            <div className="no-words">
+              <p>No WAT tests available. Please upload words.txt file first.</p>
+            </div>
+          ) : (
+            <>
+              <p className="test-info">Available Tests: {availableTests.length}</p>
+              <div className="test-options">
+                {availableTests.map(test => (
+                  <button
+                    key={test.testNumber}
+                    className="test-option-btn"
+                    onClick={() => handleTestSelect(test.testNumber)}
+                  >
+                    Test {test.testNumber} ({test.wordCount} words)
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (words.length === 0) {
     return (
       <div className="wat-test">
         <button className="back-button" onClick={onBack}>← Back</button>
         <div className="no-words">
-          <p>No WAT words found. Please upload words.txt file first.</p>
+          <p>No WAT words found in this test.</p>
         </div>
       </div>
     );

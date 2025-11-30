@@ -3,13 +3,15 @@ import api from '../../config/api';
 import './SRTTest.css';
 
 function SRTTest({ onBack }) {
+  const [availableTests, setAvailableTests] = useState([]);
+  const [selectedTest, setSelectedTest] = useState(null);
   const [srts, setSrts] = useState([]);
   const [timer, setTimer] = useState(1800); // 30 minutes
   const [testStarted, setTestStarted] = useState(false);
   const [testComplete, setTestComplete] = useState(false);
 
   useEffect(() => {
-    loadSRTs();
+    loadAvailableTests();
   }, []);
 
   useEffect(() => {
@@ -24,9 +26,18 @@ function SRTTest({ onBack }) {
     }
   }, [timer, testStarted, testComplete]);
 
-  const loadSRTs = async () => {
+  const loadAvailableTests = async () => {
     try {
-      const response = await api.get('/api/srt-list');
+      const response = await api.get('/api/srt-tests');
+      setAvailableTests(response.data);
+    } catch (error) {
+      console.error('Error loading available tests:', error);
+    }
+  };
+
+  const loadSRTs = async (testNumber) => {
+    try {
+      const response = await api.get(`/api/srt-list/${testNumber}`);
       let srtList = response.data;
       
       if (srtList.length > 60) {
@@ -37,6 +48,14 @@ function SRTTest({ onBack }) {
     } catch (error) {
       console.error('Error loading SRTs:', error);
     }
+  };
+
+  const handleTestSelect = (testNumber) => {
+    setSelectedTest(testNumber);
+    setTimer(1800);
+    setTestStarted(false);
+    setTestComplete(false);
+    loadSRTs(testNumber);
   };
 
   const playFinalSound = () => {
@@ -73,12 +92,44 @@ function SRTTest({ onBack }) {
     setTestStarted(true);
   };
 
+  // Show test selection screen
+  if (!selectedTest) {
+    return (
+      <div className="srt-test">
+        <button className="back-button" onClick={onBack}>← Back</button>
+        <div className="test-selection">
+          <h2>Select SRT Test</h2>
+          {availableTests.length === 0 ? (
+            <div className="no-srts">
+              <p>No SRT tests available. Please upload SRT list first.</p>
+            </div>
+          ) : (
+            <>
+              <p className="test-info">Available Tests: {availableTests.length}</p>
+              <div className="test-options">
+                {availableTests.map(test => (
+                  <button
+                    key={test.testNumber}
+                    className="test-option-btn"
+                    onClick={() => handleTestSelect(test.testNumber)}
+                  >
+                    Test {test.testNumber} ({test.itemCount} items)
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (srts.length === 0) {
     return (
       <div className="srt-test">
         <button className="back-button" onClick={onBack}>← Back</button>
         <div className="no-srts">
-          <p>No SRT list found. Please upload SRT list first.</p>
+          <p>No SRT list found in this test.</p>
         </div>
       </div>
     );
