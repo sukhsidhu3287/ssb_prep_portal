@@ -7,7 +7,7 @@ function WATTest({ onBack }) {
   const [selectedTest, setSelectedTest] = useState(null);
   const [words, setWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(15);
   const [showSummary, setShowSummary] = useState(false);
   const [displayedWords, setDisplayedWords] = useState([]);
 
@@ -27,7 +27,7 @@ function WATTest({ onBack }) {
       if (currentIndex < words.length - 1) {
         setDisplayedWords(prev => [...prev, words[currentIndex]]);
         setCurrentIndex(currentIndex + 1);
-        setTimer(30);
+        setTimer(15);
       } else {
         playFinalSound();
         setDisplayedWords(prev => [...prev, words[currentIndex]]);
@@ -60,7 +60,7 @@ function WATTest({ onBack }) {
   const handleTestSelect = (testNumber) => {
     setSelectedTest(testNumber);
     setCurrentIndex(0);
-    setTimer(30);
+    setTimer(15);
     setShowSummary(false);
     setDisplayedWords([]);
     loadWords(testNumber);
